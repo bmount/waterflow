@@ -6,6 +6,8 @@
 Ongoing experiment, some of the idea and motivation is discussed
 [here](http://partialmap.tumblr.com/post/42826697787/slow-weather-records).
 
+example [in the gh-pages](http://bmount.github.com/waterflow/)
+
 You can use a related project at `../hgt2png` to generate the data source image,
 for example the larger Bay Area file is created like this:
 
