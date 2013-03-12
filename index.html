@@ -10,6 +10,7 @@
 <script>
  
 var IMG_URL = "raster/part-1730-684-2215-1033-N37W123.png"
+//var IMG_URL = "raster/part-1581-474-2730-1151-N37W123.png"
 
 var topo = new Image;
 topo.src = IMG_URL;
@@ -20,7 +21,6 @@ var ctx, src, s, v, view, source, w;
 var min = 16000;
 
 function makeView () {
-  //console.log(arguments, topo.height);
   view = document.createElement("canvas")
   source = document.createElement("canvas")
   view.width = source.width = topo.width;
@@ -33,11 +33,13 @@ function makeView () {
   v = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height).data;
   document.body.appendChild(src.canvas);
   w = view.width;
-  for (var zz = 0; zz < view.width; zz += Math.ceil(10*Math.random())) {
-    for (var uu = 0; uu < view.height; uu += Math.ceil(10*Math.random())) {
-      falls(zz,uu);
+
+  for (var zz = 0; zz < view.width; zz += 5) {
+    for (var uu = 0; uu < view.height; uu += 5) {
+      falls(zz, uu);
     }
   }
+
 }
 
 function slopes (e,i,c) {
@@ -46,7 +48,6 @@ function slopes (e,i,c) {
       idx = (y*w + x)*4;
   var h = s[idx]*256 + s[idx+1];
   var dz = (h - c.z)/run;
-  //console.log(dz, h)
   if (!c) return h;
   if (!i) c.steepest = [[x,y,h,0]];
   else if (dz < c.steepest[0][3]) c.steepest = [[x,y,h,dz]];
@@ -68,21 +69,22 @@ function slope (z) {
 var seen = {}
 
 function least (a, b) { return (a < b)? a: b; }
-function cpLeast (z) { return function (a) { return (a <= z); } }
+function controlLeast (z, index) { return function (a) { return (a[index] <= z); } }
 function atOrBelow (z, index) { return function (a) { return (a[index] <= z && !(seen[a])); }}
 function equal (a, stack) { function to (b) { return (a === b)? stack.push(b): false; } return to; }
 
-function adjacent (x, y, z) { 
+function adjacent (x, y, dz, z) { 
   if (x < 1 || y < 1 || y >= view.height || x >= view.width) return false;
   // like unit circle, origin then 0-> 1,0, 1-> 1,1, 2 -> 0,1
   var rv = [ [x+1, y, 1], [x+1, y+1, 1.414], [x, y+1, 1], 
   [x-1, y+1, 1.414], [x-1, y, 1],[x-1, y-1, 1.414],
   [x, y-1, 1],[x+1, y-1, 1.414] ];
-  rv.z = z;
   rv.forEach(function (e,i,c) { e.push(elevation.apply(null,e)) })
-  //rv.forEach(function (e,i,c) { e[2] = (z - e[3])/e[2] })
+  rv.forEach(function (e,i,c) { e[2] = (e[3] - z)/e[2]; })
+  rv = rv.filter(controlLeast(0, 2)); // slope 0 worst case
+  if (!rv.length) return [];
   var lowestYet = rv.map(slopes).reduce(least)
-  rv = rv.filter(atOrBelow(lowestYet, 3))
+  rv = rv.filter(atOrBelow(lowestYet, 3));
   rv.forEach(function (e) { seen[e] = true; })
   return rv;
 }
@@ -91,27 +93,24 @@ function adjacent (x, y, z) {
 function falls (x, y) {
   var tps = []
   if (x < 1 || y < 1 || y >= view.height || x >= view.width) return;
-  stack = [[x,y, elevation(x,y), 0]]
+  stack = [[x,y, 0, elevation(x,y)]]
   var c, low = 16000;
   ctx.moveTo(x,y);
   ctx.beginPath();
   done = 1;
   while (stack.length) {
-    done++
-    //if (done > 30) return;
     c = stack.pop();
-    //console.log(c)
     if (c[3] > low || low <= 0) continue;
     ctx.lineTo(c[0],c[1]);
     var nxt = adjacent.apply(null,c);
-    //console.log(nxt)
     low = nxt.length? nxt[0][3]: low;
     for (var i = 0; i < nxt.length; i++) {
       stack.push(nxt[i]);
     }
-    //stack.push.apply(stack, nxt);
 }
+//ctx.closePath();
 ctx.stroke();
+return c;
 }
 function main () {
 }
